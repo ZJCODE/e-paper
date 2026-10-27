@@ -16,10 +16,17 @@ Profiles are stored in NVS namespace `zwifi` (up to eight SSID/password pairs).
 
 1. Choose **WIFI → ADD NETWORK**.
 2. Join the on-screen hotspot (name `NOTE4-XXXX`, random 8-character password).
-3. Open `http://192.168.4.1` if the captive page does not appear.
+3. Scan the on-screen QR code (encodes `http://192.168.4.1`), or type that URL.
 4. Select a network (or type an SSID), enter the password and submit.
 5. The device saves the profile, stops the SoftAP and connects as STA.
 6. Hold OK during the waiting screen to cancel.
+
+The ADD WIFI panel uses Design A: numbered steps on the left, portal QR on the
+right. Regenerate the embedded bitmap with:
+
+```bash
+python tools/generate_portal_qr.py
+```
 
 The portal times out after five minutes.
 

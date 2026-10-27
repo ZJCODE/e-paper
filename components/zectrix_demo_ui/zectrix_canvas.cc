@@ -121,3 +121,18 @@ int ZectrixCanvas::TextWidth(const char* text, int scale) const {
     }
     return width;
 }
+
+void ZectrixCanvas::Bitmap(int x, int y, int width, int height,
+                           const uint8_t* bits, size_t stride) {
+    if (bits == nullptr || width <= 0 || height <= 0 || stride == 0) {
+        return;
+    }
+    for (int row = 0; row < height; ++row) {
+        const uint8_t* source = bits + static_cast<size_t>(row) * stride;
+        for (int column = 0; column < width; ++column) {
+            const bool white =
+                (source[column / 8] & (0x80 >> (column & 7))) != 0;
+            Pixel(x + column, y + row, !white);
+        }
+    }
+}

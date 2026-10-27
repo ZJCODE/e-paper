@@ -57,8 +57,8 @@ test; long DOWN retains its global shutdown meaning.
 ## Wi-Fi
 
 - **SAVED NETWORKS** lists NVS profiles. OK opens Connect / Delete / Cancel.
-- **ADD NETWORK** starts a SoftAP, shows SSID / password / `http://192.168.4.1`
-  on the panel, and waits for the phone browser form. Hold OK cancels.
+- **ADD NETWORK** starts a SoftAP and shows Design A: left-side steps with
+  SSID / password / URL, right-side QR for `http://192.168.4.1`. Hold OK cancels.
 - Details: [WIFI.md](WIFI.md).
 
 ## Shutdown sequence

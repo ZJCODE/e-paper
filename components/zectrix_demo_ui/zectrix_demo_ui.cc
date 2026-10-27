@@ -6,6 +6,7 @@
 
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "zectrix_portal_qr.h"
 
 namespace {
 
@@ -275,16 +276,30 @@ esp_err_t ZectrixDemoUi::ShowWifiPortal(const char* softap_ssid,
                                         const char* softap_password,
                                         const char* portal_url) {
     DrawFrame("ADD WIFI", "Hold OK Cancel   Hold DOWN Off");
-    canvas_.Text(20, 50, "Join this hotspot:", 1);
-    canvas_.Text(20, 84, "SSID", 1);
-    canvas_.Text(120, 84, softap_ssid != nullptr ? softap_ssid : "-", 1);
-    canvas_.Text(20, 114, "PASS", 1);
-    canvas_.Text(120, 114,
+
+    // Design A: numbered steps on the left, portal QR on the right.
+    canvas_.Text(16, 48, "1. Join hotspot", 1);
+    canvas_.Text(16, 78, "SSID", 1);
+    canvas_.Text(64, 78, softap_ssid != nullptr ? softap_ssid : "-", 1);
+    canvas_.Text(16, 104, "PASS", 1);
+    canvas_.Text(64, 104,
                  softap_password != nullptr ? softap_password : "-", 1);
-    canvas_.Line(20, 148, 379, 148);
-    canvas_.Text(20, 164, "Then open:", 1);
-    canvas_.Text(20, 198, portal_url != nullptr ? portal_url : "-", 2);
-    canvas_.Text(20, 238, "Pick Wi-Fi on your phone.", 1);
+    canvas_.Text(16, 140, "2. Scan QR or open", 1);
+    const char* url =
+        portal_url != nullptr ? portal_url : kZectrixPortalQrUrl;
+    canvas_.Text(16, 168, url, 1);
+    canvas_.Text(16, 204, "3. Pick Wi-Fi on phone", 1);
+
+    constexpr int kQrX = 242;
+    constexpr int kQrY = 48;
+    canvas_.Rect(kQrX - 4, kQrY - 4, kZectrixPortalQrWidth + 8,
+                 kZectrixPortalQrHeight + 8);
+    canvas_.Bitmap(kQrX, kQrY, kZectrixPortalQrWidth, kZectrixPortalQrHeight,
+                   kZectrixPortalQrBits, kZectrixPortalQrStride);
+    const char* caption = "SCAN TO OPEN";
+    const int caption_x =
+        kQrX + (kZectrixPortalQrWidth - canvas_.TextWidth(caption)) / 2;
+    canvas_.Text(caption_x, kQrY + kZectrixPortalQrHeight + 6, caption, 1);
     return RefreshFull();
 }
 
