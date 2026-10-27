@@ -80,17 +80,19 @@ esp_err_t ZectrixDemoUi::ShowMenu(const char* title,
                                   size_t selected, const char* footer,
                                   bool full_refresh) {
     DrawFrame(title, footer);
-    constexpr int row_height = 42;
+    const int row_height = count > 5 ? 34 : 42;
+    const int box_height = count > 5 ? 28 : 34;
+    const int text_offset = count > 5 ? 6 : 9;
     const int start_y = 46;
     for (size_t i = 0; i < count; ++i) {
         const int y = start_y + static_cast<int>(i) * row_height;
         const bool active = i == selected;
         if (active) {
-            canvas_.FillRect(16, y, 368, 34, true);
-            canvas_.Text(28, y + 9, items[i], 1, true);
+            canvas_.FillRect(16, y, 368, box_height, true);
+            canvas_.Text(28, y + text_offset, items[i], 1, true);
         } else {
-            canvas_.Rect(16, y, 368, 34);
-            canvas_.Text(28, y + 9, items[i]);
+            canvas_.Rect(16, y, 368, box_height);
+            canvas_.Text(28, y + text_offset, items[i]);
         }
     }
     return full_refresh ? RefreshFull()
@@ -266,6 +268,39 @@ esp_err_t ZectrixDemoUi::ShowDeviceInfo(
                   power.charge.power_present ? "IN" : "OUT",
                   power.charge.charging ? "CHARGING" : "IDLE");
     canvas_.Text(176, ys[6], line);
+    return RefreshFull();
+}
+
+esp_err_t ZectrixDemoUi::ShowWifiPortal(const char* softap_ssid,
+                                        const char* softap_password,
+                                        const char* portal_url) {
+    DrawFrame("ADD WIFI", "Hold OK Cancel   Hold DOWN Off");
+    canvas_.Text(20, 50, "Join this hotspot:", 1);
+    canvas_.Text(20, 84, "SSID", 1);
+    canvas_.Text(120, 84, softap_ssid != nullptr ? softap_ssid : "-", 1);
+    canvas_.Text(20, 114, "PASS", 1);
+    canvas_.Text(120, 114,
+                 softap_password != nullptr ? softap_password : "-", 1);
+    canvas_.Line(20, 148, 379, 148);
+    canvas_.Text(20, 164, "Then open:", 1);
+    canvas_.Text(20, 198, portal_url != nullptr ? portal_url : "-", 2);
+    canvas_.Text(20, 238, "Pick Wi-Fi on your phone.", 1);
+    return RefreshFull();
+}
+
+esp_err_t ZectrixDemoUi::ShowWifiStatus(const char* title, const char* line1,
+                                        const char* line2, const char* line3) {
+    DrawFrame(title != nullptr ? title : "WIFI",
+              "OK Continue   Hold OK Back");
+    if (line1 != nullptr) {
+        canvas_.TextCentered(88, line1, 1);
+    }
+    if (line2 != nullptr) {
+        canvas_.TextCentered(130, line2, 1);
+    }
+    if (line3 != nullptr) {
+        canvas_.TextCentered(172, line3, 1);
+    }
     return RefreshFull();
 }
 

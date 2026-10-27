@@ -19,8 +19,9 @@ The home menu contains:
 1. **AUTO SHOWCASE** — unattended rotation of all three display modes.
 2. **DISPLAY GALLERY** — individual display demonstrations and measurements.
 3. **HARDWARE TESTS** — run all tests or choose one test.
-4. **DEVICE INFO** — live board and power information.
-5. **ABOUT & LICENSE** — project ownership and license.
+4. **WIFI** — saved-network list selection and SoftAP add-network portal.
+5. **DEVICE INFO** — live board and power information.
+6. **ABOUT & LICENSE** — project ownership and license.
 
 After 15 seconds of home-screen inactivity, Auto Showcase starts. Any click
 leaves the unattended sequence at the next safe point.
@@ -52,6 +53,13 @@ and measurements use the full content width below the strip; exceptionally long
 runtime values are shortened with an ellipsis instead of running off-screen.
 Interactive tests use explicit operator prompts. Long OK cancels the active
 test; long DOWN retains its global shutdown meaning.
+
+## Wi-Fi
+
+- **SAVED NETWORKS** lists NVS profiles. OK opens Connect / Delete / Cancel.
+- **ADD NETWORK** starts a SoftAP, shows SSID / password / `http://192.168.4.1`
+  on the panel, and waits for the phone browser form. Hold OK cancels.
+- Details: [WIFI.md](WIFI.md).
 
 ## Shutdown sequence
 

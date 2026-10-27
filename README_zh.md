@@ -48,6 +48,7 @@ components/zectrix_epd/       SSD2683 墨水屏公开驱动
 components/zectrix_board/     NOTE4 引脚与外设适配层
 components/zectrix_demo_ui/   画布、点阵字库与英文演示 UI
 components/zectrix_self_test/ 硬件自检实现
+components/zectrix_wifi/      Wi-Fi 名单与 SoftAP 网页配网
 main/assets/                  内嵌显示素材
 tools/                        图片、动画与字库转换工具
 docs/                         集成、交互和验收文档
@@ -71,8 +72,11 @@ docs/                         集成、交互和验收文档
 - 自动展示：依次轮播 1bpp 全刷灯塔、1bpp 局刷六步脚印、4bpp 十六灰阶山水画。
 - 显示图库：可单独运行三个刷新场景并查看格式、数据量、耗时和返回值。
 - 硬件测试：Wi-Fi RF、扬声器/麦克风声学回环、RTC、充电、电池、LED、三按键和 NFC。
+- Wi-Fi：本地名单选择切换；新增时开 SoftAP，墨水屏显示热点信息，手机浏览器配网。
 - 设备信息：Flash、PSRAM、MAC、RTC/NFC 状态、电池电压及充电状态。
 - 关于页面：Zectrix Lab 与 MIT License 信息。
+
+Wi-Fi 流程详见 [docs/WIFI.md](docs/WIFI.md)。
 
 4bpp 刷新前固定执行白色 1bpp 全刷，降低上一画面的残影。菜单局刷累计到一定次数
 后自动做全刷，控制 UI 残影。
@@ -92,7 +96,8 @@ docs/                         集成、交互和验收文档
 字库授权见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。EPD 集成接口见
 [docs/EPD_API.md](docs/EPD_API.md)，硬件引脚见
 [docs/HARDWARE.md](docs/HARDWARE.md)，测试判定见
-[docs/TEST_CRITERIA.md](docs/TEST_CRITERIA.md)。
+[docs/TEST_CRITERIA.md](docs/TEST_CRITERIA.md)，Wi-Fi 配网见
+[docs/WIFI.md](docs/WIFI.md)。
 欢迎参与改进，提交前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## 官方链接
