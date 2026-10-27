@@ -40,6 +40,12 @@ public:
                              bool rtc_ready, bool nfc_ready,
                              const char* mac, uint32_t flash_mb,
                              uint32_t psram_mb);
+    esp_err_t ShowWifiPortal(const char* softap_ssid,
+                             const char* softap_password,
+                             const char* portal_url);
+    esp_err_t ShowWifiStatus(const char* title, const char* line1,
+                             const char* line2 = nullptr,
+                             const char* line3 = nullptr);
     esp_err_t ShowAbout();
     esp_err_t ClearDisplay();
 

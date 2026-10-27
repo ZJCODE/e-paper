@@ -82,6 +82,9 @@ Splash
      |    |-- Run All Tests
      |    `-- Select Individual
      |         `-- Wi-Fi RF / Audio / RTC / Power / LED / Buttons / NFC
+     |-- Wi-Fi
+     |    |-- Saved Networks (select / connect / delete)
+     |    `-- Add Network (SoftAP portal on the e-paper panel)
      |-- Device Info
      `-- About & License
 ```
@@ -106,6 +109,7 @@ components/zectrix_epd/       Public SSD2683 display driver
 components/zectrix_board/     Board pins and peripheral adapters
 components/zectrix_demo_ui/   Canvas, bitmap font and English UI
 components/zectrix_self_test/ Hardware test implementations
+components/zectrix_wifi/      Saved Wi-Fi list and SoftAP provisioning
 main/assets/                  Embedded display assets
 tools/                        Asset and font conversion utilities
 docs/                         Integration and validation guides
@@ -114,7 +118,8 @@ docs/                         Integration and validation guides
 The public EPD interface is documented in
 [docs/EPD_API.md](docs/EPD_API.md). Hardware pins and tests are documented in
 [docs/HARDWARE.md](docs/HARDWARE.md) and
-[docs/TEST_CRITERIA.md](docs/TEST_CRITERIA.md).
+[docs/TEST_CRITERIA.md](docs/TEST_CRITERIA.md). Wi-Fi list selection and SoftAP
+add-network flow are documented in [docs/WIFI.md](docs/WIFI.md).
 
 ## Image asset formats
 

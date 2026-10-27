@@ -24,6 +24,13 @@ public:
                       bool inverted = false);
     int TextWidth(const char* text, int scale = 1) const;
 
+    /**
+     * Blit a 1bpp MSB-first bitmap (0=black, 1=white), row stride in bytes.
+     * Transparent white is not supported; every source pixel is written.
+     */
+    void Bitmap(int x, int y, int width, int height, const uint8_t* bits,
+                size_t stride);
+
     uint8_t* data() { return pixels_.data(); }
     const uint8_t* data() const { return pixels_.data(); }
     size_t size() const { return pixels_.size(); }

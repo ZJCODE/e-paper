@@ -18,6 +18,7 @@
 #include "zectrix_demo_ui.h"
 #include "zectrix_epd.h"
 #include "zectrix_self_test.h"
+#include "zectrix_wifi.h"
 
 extern "C" {
 extern const uint8_t kLighthouse1bppStart[]
@@ -74,6 +75,11 @@ public:
         esp_err_t err = board_.Init();
         if (err != ESP_OK) {
             ESP_LOGE(kTag, "board initialization failed: %s", esp_err_to_name(err));
+        }
+
+        err = wifi_.Init();
+        if (err != ESP_OK) {
+            ESP_LOGW(kTag, "Wi-Fi manager init failed: %s", esp_err_to_name(err));
         }
 
         zectrix_epd_config_t config = {};
@@ -158,7 +164,7 @@ private:
 
     ControlResult RunHome() {
         static constexpr const char* kItems[] = {
-            "AUTO SHOWCASE", "DISPLAY GALLERY", "HARDWARE TESTS",
+            "AUTO SHOWCASE", "DISPLAY GALLERY", "HARDWARE TESTS", "WIFI",
             "DEVICE INFO", "ABOUT & LICENSE"};
         size_t selected = 0;
         while (true) {
@@ -187,14 +193,211 @@ private:
                 const ControlResult result = RunHardwareTests();
                 if (result == ControlResult::kShutdown) return result;
             } else if (selected == 3) {
-                const ControlResult result = RunDeviceInfo();
+                const ControlResult result = RunWifiMenu();
                 if (result == ControlResult::kShutdown) return result;
             } else if (selected == 4) {
+                const ControlResult result = RunDeviceInfo();
+                if (result == ControlResult::kShutdown) return result;
+            } else if (selected == 5) {
                 ESP_ERROR_CHECK(ui_.ShowAbout());
                 const ControlResult result = Wait(portMAX_DELAY, false);
                 if (result == ControlResult::kShutdown) return result;
             }
         }
+    }
+
+    ControlResult RunWifiMenu() {
+        size_t selected = 0;
+        while (true) {
+            static constexpr const char* kItems[] = {
+                "SAVED NETWORKS", "ADD NETWORK"};
+            const ControlResult menu = RunMenu(
+                "WIFI", kItems, std::size(kItems),
+                "UP/DOWN Move  OK Select  Hold OK Back", &selected);
+            if (menu == ControlResult::kShutdown) return menu;
+            if (menu == ControlResult::kBack) return ControlResult::kBack;
+            if (selected == 0) {
+                const ControlResult result = RunWifiSavedNetworks();
+                if (result == ControlResult::kShutdown) return result;
+            } else {
+                const ControlResult result = RunWifiAddNetwork();
+                if (result == ControlResult::kShutdown) return result;
+            }
+        }
+    }
+
+    void BuildWifiListLabels(
+        std::array<std::array<char, 40>, ZectrixWifi::kMaxProfiles + 1>* labels,
+        std::array<const char*, ZectrixWifi::kMaxProfiles + 1>* items,
+        size_t* count) {
+        *count = 0;
+        for (size_t i = 0; i < wifi_.ProfileCount(); ++i) {
+            ZectrixWifi::Profile profile;
+            if (!wifi_.GetProfile(i, &profile)) {
+                continue;
+            }
+            const char* mark = (static_cast<int>(i) == wifi_.CurrentIndex())
+                                   ? ">"
+                                   : " ";
+            const char* state = profile.last_ok ? "OK" : "--";
+            std::snprintf((*labels)[i].data(), (*labels)[i].size(),
+                          "%s %-22.22s %s", mark, profile.ssid, state);
+            (*items)[i] = (*labels)[i].data();
+            ++(*count);
+        }
+        if (*count == 0) {
+            std::snprintf((*labels)[0].data(), (*labels)[0].size(),
+                          "(empty - add a network)");
+            (*items)[0] = (*labels)[0].data();
+            *count = 1;
+        }
+    }
+
+    ControlResult RunWifiSavedNetworks() {
+        size_t selected = 0;
+        while (true) {
+            std::array<std::array<char, 40>, ZectrixWifi::kMaxProfiles + 1>
+                labels = {};
+            std::array<const char*, ZectrixWifi::kMaxProfiles + 1> items = {};
+            size_t count = 0;
+            BuildWifiListLabels(&labels, &items, &count);
+            if (selected >= count) {
+                selected = 0;
+            }
+            const bool empty = wifi_.ProfileCount() == 0;
+            const ControlResult menu = RunMenu(
+                "SAVED NETWORKS", items.data(), count,
+                empty ? "Hold OK Back"
+                      : "OK Connect  Hold DOWN Delete  Hold OK Back",
+                &selected);
+            if (menu == ControlResult::kShutdown) return menu;
+            if (menu == ControlResult::kBack) return ControlResult::kBack;
+            if (empty) {
+                continue;
+            }
+
+            // Long-press DOWN inside RunMenu already maps to shutdown. Offer
+            // delete via a confirmation submenu after OK opens actions.
+            static constexpr const char* kActions[] = {
+                "CONNECT", "DELETE", "CANCEL"};
+            size_t action = 0;
+            const ControlResult action_menu = RunMenu(
+                "NETWORK ACTION", kActions, std::size(kActions),
+                "OK Confirm  Hold OK Back", &action);
+            if (action_menu == ControlResult::kShutdown) return action_menu;
+            if (action_menu == ControlResult::kBack || action == 2) {
+                continue;
+            }
+            if (action == 1) {
+                const esp_err_t err = wifi_.DeleteProfile(selected);
+                ESP_ERROR_CHECK(ui_.ShowWifiStatus(
+                    "WIFI", err == ESP_OK ? "DELETED" : "DELETE FAILED",
+                    err == ESP_OK ? nullptr : esp_err_to_name(err)));
+                const ControlResult pause = Wait(pdMS_TO_TICKS(1200), true);
+                if (pause == ControlResult::kShutdown) return pause;
+                selected = 0;
+                continue;
+            }
+
+            ZectrixWifi::Profile selected_profile;
+            wifi_.GetProfile(selected, &selected_profile);
+            ESP_ERROR_CHECK(ui_.ShowWifiStatus(
+                "WIFI", "CONNECTING...", selected_profile.ssid));
+            const esp_err_t err =
+                wifi_.ConnectProfile(selected, 20000);
+            char ip[16] = {};
+            char ssid[33] = {};
+            wifi_.GetConnectionInfo(ssid, sizeof(ssid), ip, sizeof(ip));
+            if (err == ESP_OK) {
+                ESP_ERROR_CHECK(ui_.ShowWifiStatus("WIFI", "CONNECTED", ssid,
+                                                   ip[0] != '\0' ? ip : nullptr));
+            } else {
+                ESP_ERROR_CHECK(ui_.ShowWifiStatus(
+                    "WIFI", "CONNECT FAILED", selected_profile.ssid,
+                    esp_err_to_name(err)));
+            }
+            const ControlResult pause = Wait(portMAX_DELAY, true);
+            if (pause == ControlResult::kShutdown) return pause;
+        }
+    }
+
+    ControlResult RunWifiAddNetwork() {
+        ZectrixWifi::SoftApInfo info;
+        const esp_err_t start = wifi_.StartProvisioning(&info);
+        if (start != ESP_OK) {
+            ESP_ERROR_CHECK(ui_.ShowWifiStatus(
+                "ADD WIFI", "SOFTAP FAILED", esp_err_to_name(start)));
+            return Wait(portMAX_DELAY, true);
+        }
+        ESP_ERROR_CHECK(
+            ui_.ShowWifiPortal(info.ssid, info.password, info.url));
+
+        constexpr int64_t kTimeoutUs = 5LL * 60 * 1000000;
+        const int64_t deadline = esp_timer_get_time() + kTimeoutUs;
+        while (esp_timer_get_time() < deadline) {
+            const auto outcome = wifi_.PollProvisioning();
+            if (outcome == ZectrixWifi::ProvisionOutcome::kSuccess) {
+                break;
+            }
+            ZectrixButtonEvent event;
+            if (!board_.WaitButton(&event, pdMS_TO_TICKS(200))) {
+                continue;
+            }
+            if (event.button == ZectrixButton::kDown &&
+                event.action == ZectrixButtonAction::kLongPress) {
+                wifi_.StopProvisioning();
+                return ControlResult::kShutdown;
+            }
+            if (event.button == ZectrixButton::kOk &&
+                event.action == ZectrixButtonAction::kLongPress) {
+                wifi_.StopProvisioning();
+                ESP_ERROR_CHECK(
+                    ui_.ShowWifiStatus("ADD WIFI", "CANCELLED"));
+                const ControlResult pause = Wait(pdMS_TO_TICKS(1000), true);
+                return pause == ControlResult::kShutdown
+                           ? pause
+                           : ControlResult::kBack;
+            }
+        }
+
+        if (wifi_.PollProvisioning() !=
+            ZectrixWifi::ProvisionOutcome::kSuccess) {
+            wifi_.StopProvisioning();
+            ESP_ERROR_CHECK(ui_.ShowWifiStatus("ADD WIFI", "TIMEOUT"));
+            const ControlResult pause = Wait(pdMS_TO_TICKS(1500), true);
+            return pause == ControlResult::kShutdown ? pause
+                                                     : ControlResult::kBack;
+        }
+
+        size_t index = 0;
+        const esp_err_t saved = wifi_.ApplyProvisionedProfile(&index);
+        wifi_.StopProvisioning();
+        if (saved != ESP_OK) {
+            ESP_ERROR_CHECK(ui_.ShowWifiStatus(
+                "ADD WIFI", "SAVE FAILED", esp_err_to_name(saved)));
+            const ControlResult pause = Wait(portMAX_DELAY, true);
+            return pause == ControlResult::kShutdown ? pause
+                                                     : ControlResult::kBack;
+        }
+
+        ESP_ERROR_CHECK(ui_.ShowWifiStatus("ADD WIFI", "SAVED",
+                                           wifi_.provision_ssid(),
+                                           "CONNECTING..."));
+        const esp_err_t connected = wifi_.ConnectProfile(index, 20000);
+        char ip[16] = {};
+        char ssid[33] = {};
+        wifi_.GetConnectionInfo(ssid, sizeof(ssid), ip, sizeof(ip));
+        if (connected == ESP_OK) {
+            ESP_ERROR_CHECK(
+                ui_.ShowWifiStatus("ADD WIFI", "CONNECTED", ssid, ip));
+        } else {
+            ESP_ERROR_CHECK(ui_.ShowWifiStatus(
+                "ADD WIFI", "SAVED BUT CONNECT FAILED", ssid,
+                esp_err_to_name(connected)));
+        }
+        const ControlResult pause = Wait(portMAX_DELAY, true);
+        return pause == ControlResult::kShutdown ? pause
+                                                 : ControlResult::kBack;
     }
 
     SceneResult RunLighthouse() {
@@ -511,6 +714,7 @@ private:
     zectrix_epd_handle_t epd_ = nullptr;
     ZectrixDemoUi ui_;
     ZectrixSelfTest tests_;
+    ZectrixWifi wifi_;
     std::array<ZectrixTestState,
                static_cast<size_t>(ZectrixTestId::kCount)> test_states_;
 };
